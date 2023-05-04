@@ -1,67 +1,50 @@
-import _ from 'lodash';
 import onChange from 'on-change';
-import { object, string } from 'yup';
+import * as yup from 'yup';
 import render from './render.js';
 
-const schema = (initialState) => {
-  object().shape({
-    url: string()
-      .trim()
-      .required()
-      .url('Cсылка должна быть валидным URL')
-      .notOneOf(initialState.feeds, 'RSS уже существует'),
-  });
-};
-
-const validate = (fields) => {
-  try {
-    schema.validate(fields, { abortEarly: false });
-    return {};
-  } catch (e) {
-    return _.keyBy(e.inner, 'path');
-  }
-};
-
-const app = () => {
+export default () => {
   const elements = {
     form: document.querySelector('form'),
     input: document.querySelector('input'),
-    submitButton: document.querySelector('[type="submit"'), // зачем она?
+    submitButton: document.querySelector('[type="submit"]'), // зачем она?
     feedback: document.querySelector('.feedback'),
     containerFeeds: document.querySelector('div.posts'),
     containerPosts: document.querySelector('div.feeds'),
   };
 
-  const initialState = {
+  const state = {
     form: {
       state: 'filling',
-      isValid: true,
-      error: '',
-      url: '',
+      valid: true,
+      error: null,
+      curUrl: '',
     },
     feeds: [],
     posts: [],
   };
 
-  const watchedState = onChange(initialState, render(elements, initialState));
+  const watchedState = onChange(state, render(elements, state));
 
-  elements.form.addEventListener('submit', async (e) => {
+  const schema = yup.string().url('Cсылка должна быть валидным URL').notOneOf(state.feeds, 'RSS уже существует').trim();
+
+  elements.form.addEventListener('submit', (e) => {
     e.preventDefault();
     watchedState.form.state = 'sending';
     const formData = new FormData(e.target);
-    const data = formData.get('url');
-    watchedState.form.url = data;
+    const curUrl = formData.get('url').trim();
+    watchedState.form.curUrl = curUrl;
 
-    await validate(watchedState.form.url).then((error) => {
-      if (error !== '') {
+    schema
+      .validate(watchedState.form.curUrl)
+      .then(() => {
+        watchedState.form.valid = 'true';
+        watchedState.feeds.push(curUrl);
+        watchedState.form.state = 'finished';
+      })
+      .catch((error) => {
         watchedState.form.error = error;
-        watchedState.isValid = 'false';
-      } else {
-        watchedState.isValid = 'true';
-        // отправить в feeds / posts
-      }
-    });
+        watchedState.form.valid = 'false';
+        watchedState.form.state = 'failed';
+      });
   });
 };
-
-export default app;

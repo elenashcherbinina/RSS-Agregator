@@ -1,25 +1,32 @@
-const renderError = (elements, error) => {
-  elements.input.classList.add('is-invalid');
-  elements.feedback.textContent = error;
+const renderError = (elements, state) => {
+  const { input, feedback } = elements;
+  input.classList.add('is-invalid');
+  feedback.textContent = state.error;
 };
 
-const renderFeeds = () => {};
+const renderValidState = (elements) => {
+  const { input, feedback, form } = elements;
+  input.classList.remove('is-invalid');
+  feedback.innerHTML = '';
+  form.reset();
+  input.focus();
+};
 
-const renderPosts = () => {};
+// const renderFeeds = () => {};
 
-export default (elements, initialState) => (path, value) => {
+// const renderPosts = () => {};
+
+export default (elements, state) => (path, value) => {
   switch (path) {
-    case 'form.isValid':
+    case 'form.valid':
       if (value === 'false') {
-        renderError(elements, initialState.form.error);
+        renderError(elements, state);
       }
       if (value === 'true') {
-        elements.input.classList.remove('is-invalid');
-        elements.feedback.innerHTML = '';
-        elements.input.focus();
-        elements.form.reset();
-        renderFeeds();
-        renderPosts();
+        renderValidState(elements);
+
+        // renderFeeds();
+        // renderPosts();
       }
       break;
     default:
