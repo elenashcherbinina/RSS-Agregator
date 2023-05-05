@@ -17,34 +17,36 @@ export default () => {
       state: 'filling',
       valid: true,
       error: null,
-      curUrl: '',
     },
     feeds: [],
     posts: [],
   };
 
+  console.log(state);
+
   const watchedState = onChange(state, render(elements, state));
 
-  const schema = yup.string().url('Cсылка должна быть валидным URL').notOneOf(state.feeds, 'RSS уже существует').trim();
+  const schema = yup.string().url('Cсылка должна быть валидным URL').notOneOf(state.feeds, 'RSS уже существует');
 
   elements.form.addEventListener('submit', (e) => {
     e.preventDefault();
     watchedState.form.state = 'sending';
     const formData = new FormData(e.target);
     const curUrl = formData.get('url').trim();
-    watchedState.form.curUrl = curUrl;
 
     schema
-      .validate(watchedState.form.curUrl)
+      .validate(curUrl)
       .then(() => {
         watchedState.form.valid = 'true';
+        watchedState.form.error = '';
         watchedState.feeds.push(curUrl);
         watchedState.form.state = 'finished';
       })
       .catch((error) => {
-        watchedState.form.error = error;
         watchedState.form.valid = 'false';
+        watchedState.form.error = error.message;
         watchedState.form.state = 'failed';
       });
+    console.log(state);
   });
 };

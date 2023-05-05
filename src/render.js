@@ -1,15 +1,18 @@
 const renderError = (elements, state) => {
   const { input, feedback } = elements;
   input.classList.add('is-invalid');
-  feedback.textContent = state.error;
+  feedback.classList.add('text-danger');
+  feedback.textContent = state.form.error;
 };
 
 const renderValidState = (elements) => {
   const { input, feedback, form } = elements;
-  input.classList.remove('is-invalid');
-  feedback.innerHTML = '';
   form.reset();
   input.focus();
+  input.classList.remove('is-invalid');
+  feedback.classList.remove('text-danger');
+  feedback.classList.add('text-success');
+  feedback.innerHTML = '';
 };
 
 // const renderFeeds = () => {};
@@ -19,14 +22,13 @@ const renderValidState = (elements) => {
 export default (elements, state) => (path, value) => {
   switch (path) {
     case 'form.valid':
-      if (value === 'false') {
-        renderError(elements, state);
-      }
       if (value === 'true') {
         renderValidState(elements);
-
         // renderFeeds();
         // renderPosts();
+      }
+      if (value === 'false') {
+        renderError(elements, state);
       }
       break;
     default:
