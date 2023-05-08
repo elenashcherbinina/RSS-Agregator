@@ -25,8 +25,8 @@ export default () => {
         input: document.querySelector('input'),
         submitButton: document.querySelector('[type="submit"]'), // зачем она?
         feedback: document.querySelector('.feedback'),
-        containerFeeds: document.querySelector('div.posts'),
-        containerPosts: document.querySelector('div.feeds'),
+        containerFeeds: document.querySelector('div.feeds'),
+        containerPosts: document.querySelector('div.posts'),
       };
 
       const state = {

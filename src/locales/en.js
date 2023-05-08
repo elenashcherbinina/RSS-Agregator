@@ -5,8 +5,11 @@ export default {
       rssAlreadyExists: 'RSS already exists',
     },
     containers: {
-      posts: '',
-      feeds: '',
+      posts: 'Posts',
+      feeds: 'Feeds',
+    },
+    buttons: {
+      read: 'Read',
     },
   },
 };
