@@ -29,6 +29,13 @@ export default (elements, state, i18nInstance) => (path, value) => {
         renderError(elements, state.form.error, i18nInstance);
       }
       break;
+    case 'form.error':
+      if (value === 'true') {
+        renderValidState(elements);
+      } else {
+        renderError(elements, state.form.error, i18nInstance);
+      }
+      break;
     default:
       break;
   }

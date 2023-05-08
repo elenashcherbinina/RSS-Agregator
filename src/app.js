@@ -5,6 +5,11 @@ import * as yup from 'yup';
 import resources from './locales/index.js';
 import render from './render.js';
 
+const validate = (url, feeds) => {
+  const schema = yup.string().url().notOneOf(feeds);
+  return schema.validate(url);
+};
+
 export default () => {
   const i18nInstance = i18next.createInstance();
 
@@ -43,8 +48,6 @@ export default () => {
         },
       });
 
-      const schema = yup.string().url().notOneOf(state.feeds);
-
       const watchedState = onChange(state, render(elements, state, i18nInstance));
 
       elements.form.addEventListener('submit', (e) => {
@@ -53,8 +56,7 @@ export default () => {
         const formData = new FormData(e.target);
         const curUrl = formData.get('url').trim();
 
-        schema
-          .validate(curUrl)
+        validate(curUrl, state.feeds)
           .then(() => {
             watchedState.form.valid = 'true';
             watchedState.form.error = null;
