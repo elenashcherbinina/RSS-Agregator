@@ -1,13 +1,28 @@
 import i18next from 'i18next';
 import onChange from 'on-change';
 import * as yup from 'yup';
+import uniqueId from 'lodash/uniqueId.js';
+import axios from 'axios';
 
 import resources from './locales/index.js';
 import render from './render.js';
+import parse from './parser.js';
 
-const validate = (url, feeds) => {
-  const schema = yup.string().url().notOneOf(feeds);
+const validate = (url, urls) => {
+  const schema = yup.string().url().notOneOf(urls);
   return schema.validate(url);
+};
+
+const getContents = (url, state) => {
+  axios
+    .get(`https://allorigins.hexlet.app/get?disableCache=true&url=${url}`)
+    .then((response) => {
+      const { data } = response;
+      return data.contents;
+    })
+    .catch(() => {
+      state.form.error = 'netWorkError';
+    });
 };
 
 export default () => {
@@ -23,7 +38,7 @@ export default () => {
       const elements = {
         form: document.querySelector('form'),
         input: document.querySelector('input'),
-        submitButton: document.querySelector('[type="submit"]'), // зачем она?
+        submitButton: document.querySelector('[type="submit"]'),
         feedback: document.querySelector('.feedback'),
         containerFeeds: document.querySelector('div.feeds'),
         containerPosts: document.querySelector('div.posts'),
@@ -56,12 +71,31 @@ export default () => {
         const formData = new FormData(e.target);
         const curUrl = formData.get('url').trim();
 
-        validate(curUrl, state.feeds)
-          .then(() => {
+        const urls = state.feeds.map(({ url }) => url);
+
+        validate(curUrl, urls)
+          .then((url) => {
             watchedState.form.valid = 'true';
             watchedState.form.error = null;
+            watchedState.form.state = 'loading';
+            return getContents(url, watchedState);
+          })
+          .then((data) => {
+            const parsedData = parse(data);
+            watchedState.feeds.unshift({
+              id: Number(uniqueId()),
+              url: curUrl,
+              title: parsedData.title,
+              description: parsedData.description,
+            });
+            watchedState.posts.push({
+              feedId: state.feeds[0].id,
+              title: parsedData.item.title,
+              link: parsedData.item.link,
+              description: parsedData.item.description,
+            });
             watchedState.form.state = 'finished';
-            watchedState.feeds.push(curUrl);
+            console.log('after', state);
           })
           .catch((error) => {
             watchedState.form.valid = 'false';
