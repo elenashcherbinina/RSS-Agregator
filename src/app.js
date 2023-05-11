@@ -7,22 +7,11 @@ import axios from 'axios';
 import resources from './locales/index.js';
 import render from './render.js';
 import parse from './parser.js';
+import { getRssData } from './utils/helpers.js';
 
 const validate = (url, urls) => {
   const schema = yup.string().url().notOneOf(urls);
   return schema.validate(url);
-};
-
-const getContents = (url, state) => {
-  axios
-    .get(`https://allorigins.hexlet.app/get?disableCache=true&url=${url}`)
-    .then((response) => {
-      const { data } = response;
-      return data.contents;
-    })
-    .catch(() => {
-      state.form.error = 'netWorkError';
-    });
 };
 
 export default () => {
@@ -78,24 +67,23 @@ export default () => {
             watchedState.form.valid = 'true';
             watchedState.form.error = null;
             watchedState.form.state = 'loading';
-            return getContents(url, watchedState);
+            return axios.get(`https://allorigins.hexlet.app/get?disableCache=true&url=${url}`);
           })
-          .then((data) => {
-            const parsedData = parse(data);
+          .then((response) => response.data.contents)
+          .then((contents) => parse(contents))
+          .then((parsedData) => {
+            const rssData = getRssData(parsedData);
             watchedState.feeds.unshift({
               id: Number(uniqueId()),
               url: curUrl,
-              title: parsedData.title,
-              description: parsedData.description,
+              title: rssData.title,
+              description: rssData.description,
             });
-            watchedState.posts.push({
-              feedId: state.feeds[0].id,
-              title: parsedData.item.title,
-              link: parsedData.item.link,
-              description: parsedData.item.description,
+            watchedState.posts.unshift({
+              feedId: state.feeds[state.feeds.length - 1].id,
+              items: rssData.items,
             });
             watchedState.form.state = 'finished';
-            console.log('after', state);
           })
           .catch((error) => {
             watchedState.form.valid = 'false';
