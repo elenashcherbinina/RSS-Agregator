@@ -1,5 +1,3 @@
-import uniqueId from 'lodash/uniqueId.js';
-
 import { buildContainer, setAttributes } from './utils/helpers.js';
 
 const renderError = (elements, error, i18nInstance) => {
@@ -54,7 +52,7 @@ const renderPosts = (elements, state, i18nInstance) => {
   const list = container.querySelector('ul');
 
   state.posts.forEach((postList) => {
-    postList.items.forEach((post) => {
+    postList.forEach((post) => {
       const listItem = document.createElement('li');
       listItem.classList.add(
         'list-group-item',
@@ -68,15 +66,14 @@ const renderPosts = (elements, state, i18nInstance) => {
       const link = document.createElement('a');
       link.classList.add('fw-bold');
       link.href = post.link;
-      const id = Number(uniqueId());
-      setAttributes(link, { 'data-id': `${id}`, target: '_blank', rel: 'noopener noreferrer' });
+      setAttributes(link, { 'data-id': `${post.id}`, target: '_blank', rel: 'noopener noreferrer' });
       link.textContent = post.title;
 
       const button = document.createElement('button');
       button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
       setAttributes(button, {
         type: 'button',
-        'data-id': `${id}`,
+        'data-id': `${post.id}`,
         'data-bs-toggle': 'modal',
         'data-bs-target': '#modal',
       });
@@ -107,6 +104,9 @@ export default (elements, state, i18nInstance) => (path, value) => {
         renderFeeds(elements, state, i18nInstance);
         renderPosts(elements, state, i18nInstance);
       }
+      break;
+    case 'posts':
+      renderPosts(elements, state, i18nInstance);
       break;
     default:
       break;

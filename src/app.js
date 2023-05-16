@@ -7,11 +7,33 @@ import axios from 'axios';
 import resources from './locales/index.js';
 import render from './render.js';
 import parse from './parser.js';
-import { getRssData } from './utils/helpers.js';
 
 const validate = (url, urls) => {
   const schema = yup.string().url().notOneOf(urls);
   return schema.validate(url);
+};
+
+const getData = (url) => {
+  const proxy = `https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(url)}`;
+  return axios.get(proxy);
+};
+
+const getUpdates = (watchedState) => {
+  const promises = watchedState.feeds.map(({ id, url }) =>
+    getData(url).then((response) => {
+      const { posts } = parse(response.data.contents);
+      const curPostsLinks = watchedState.posts.map((post) => post.map((item) => item.link)).flat();
+      const newPosts = posts.filter((item) => !curPostsLinks.includes(item.link));
+      if (newPosts.length !== 0) {
+        newPosts.forEach((newPost) => {
+          newPost.id = Number(uniqueId());
+          newPost.feedId = id;
+        });
+        watchedState.posts.unshift(newPosts);
+      }
+    }),
+  );
+  return Promise.all(promises).then(setTimeout(() => getUpdates(watchedState), 5000));
 };
 
 export default () => {
@@ -67,22 +89,21 @@ export default () => {
             watchedState.form.valid = 'true';
             watchedState.form.error = null;
             watchedState.form.state = 'loading';
-            return axios.get(`https://allorigins.hexlet.app/get?disableCache=true&url=${url}`);
+            return getData(url);
           })
           .then((response) => response.data.contents)
-          .then((contents) => parse(contents))
-          .then((parsedData) => {
-            const rssData = getRssData(parsedData);
-            watchedState.feeds.unshift({
-              id: Number(uniqueId()),
-              url: curUrl,
-              title: rssData.title,
-              description: rssData.description,
+          .then((contents) => {
+            const { feed, posts } = parse(contents);
+            feed.url = curUrl;
+            feed.id = Number(uniqueId());
+
+            posts.map((post) => {
+              post.feedId = feed.id;
+              post.id = Number(uniqueId());
             });
-            watchedState.posts.unshift({
-              feedId: state.feeds[state.feeds.length - 1].id,
-              items: rssData.items,
-            });
+
+            watchedState.feeds.unshift(feed);
+            watchedState.posts.unshift(posts);
             watchedState.form.state = 'finished';
           })
           .catch((error) => {
@@ -91,5 +112,6 @@ export default () => {
             watchedState.form.state = 'failed';
           });
       });
+      setTimeout(() => getUpdates(watchedState), 5000);
     });
 };

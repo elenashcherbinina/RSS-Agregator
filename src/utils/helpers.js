@@ -1,15 +1,3 @@
-export const getRssData = (doc) => {
-  const title = doc.querySelector('title').textContent;
-  const description = doc.querySelector('description').textContent;
-  const items = Array.from(doc.querySelectorAll('item')).map((item) => {
-    const itemTitle = item.querySelector('title').textContent;
-    const link = item.querySelector('link').textContent;
-    const itemDescription = item.querySelector('description').textContent;
-    return { title: itemTitle, link, description: itemDescription };
-  });
-  return { title, description, items };
-};
-
 export const buildContainer = (name, i18nInstance) => {
   const container = document.createElement('div');
   container.classList.add('card', 'border-0');
