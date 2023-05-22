@@ -19,29 +19,32 @@ const getData = (url) => {
 };
 
 const getUpdates = (watchedState) => {
-  const promises = watchedState.feeds.map(({ id, url }) =>
-    getData(url).then((response) => {
+  const promises = watchedState.feeds.map(({ id, url }) => {
+    const request = getData(url);
+
+    return request.then((response) => {
       const { posts } = parse(response.data.contents);
-      const curPostsLinks = watchedState.posts.map((post) => post.map((item) => item.link)).flat();
+      const curPostsLinks = watchedState.posts.map((post) => post.link);
       const newPosts = posts.filter((item) => !curPostsLinks.includes(item.link));
       if (newPosts.length !== 0) {
-        newPosts.forEach((newPost) => {
-          newPost.id = Number(uniqueId());
-          newPost.feedId = id;
+        const newPostsWithId = newPosts.map((newPost) => {
+          const newPostWithId = { ...newPost, feedId: id, id: Number(uniqueId()) };
+          return newPostWithId;
         });
-        watchedState.posts.unshift(newPosts);
+        watchedState.posts.unshift(...newPostsWithId);
       }
-    }),
-  );
+    });
+  });
   return Promise.all(promises).then(setTimeout(() => getUpdates(watchedState), 5000));
 };
 
 export default () => {
+  const defaultLanguage = 'ru';
   const i18nInstance = i18next.createInstance();
 
   i18nInstance
     .init({
-      lng: 'ru',
+      lng: defaultLanguage,
       debug: false,
       resources,
     })
@@ -49,20 +52,30 @@ export default () => {
       const elements = {
         form: document.querySelector('form'),
         input: document.querySelector('input'),
-        submitButton: document.querySelector('[type="submit"]'),
         feedback: document.querySelector('.feedback'),
         containerFeeds: document.querySelector('div.feeds'),
         containerPosts: document.querySelector('div.posts'),
+        modal: {
+          title: document.querySelector('.modal-title'),
+          text: document.querySelector('.modal-body'),
+          link: document.querySelector('a.full-article'),
+        },
       };
 
       const state = {
         form: {
-          state: 'filling',
           valid: true,
-          error: null,
         },
+        loadingProcess: {
+          state: 'filling',
+        },
+        error: null,
         feeds: [],
         posts: [],
+        modal: {
+          postId: null,
+          viewedPosts: new Set(),
+        },
       };
 
       yup.setLocale({
@@ -78,7 +91,7 @@ export default () => {
 
       elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
-        watchedState.form.state = 'sending';
+        watchedState.loadingProcess.state = 'sending';
         const formData = new FormData(e.target);
         const curUrl = formData.get('url').trim();
 
@@ -87,31 +100,38 @@ export default () => {
         validate(curUrl, urls)
           .then((url) => {
             watchedState.form.valid = 'true';
-            watchedState.form.error = null;
-            watchedState.form.state = 'loading';
+            watchedState.loadingProcess.state = 'loading';
+            watchedState.error = null;
             return getData(url);
           })
           .then((response) => response.data.contents)
           .then((contents) => {
             const { feed, posts } = parse(contents);
+
             feed.url = curUrl;
             feed.id = Number(uniqueId());
 
-            posts.map((post) => {
-              post.feedId = feed.id;
-              post.id = Number(uniqueId());
+            const postsWithId = posts.map((post) => {
+              const postWithId = { ...post, feedId: feed.id, id: Number(uniqueId()) };
+              return postWithId;
             });
 
             watchedState.feeds.unshift(feed);
-            watchedState.posts.unshift(posts);
-            watchedState.form.state = 'finished';
+            watchedState.posts.unshift(...postsWithId);
+            watchedState.loadingProcess.state = 'finished';
           })
           .catch((error) => {
             watchedState.form.valid = 'false';
-            watchedState.form.error = error.message;
-            watchedState.form.state = 'failed';
+            watchedState.loadingProcess.state = 'failed';
+            watchedState.error = error.message;
           });
       });
+      elements.containerPosts.addEventListener('click', (event) => {
+        const clickedPostId = event.target.dataset.id;
+        watchedState.modal.postId = Number(clickedPostId);
+        watchedState.modal.viewedPosts.add(Number(clickedPostId));
+      });
+
       setTimeout(() => getUpdates(watchedState), 5000);
     });
 };

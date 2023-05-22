@@ -1,6 +1,9 @@
 export default (contents) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(contents, 'text/xml');
+  if (doc.querySelector('parsererror')) {
+    throw new Error('noRSS');
+  }
 
   const feed = {
     title: doc.querySelector('title').textContent,

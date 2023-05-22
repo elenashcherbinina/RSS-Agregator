@@ -1,10 +1,14 @@
 export default {
   translation: {
     errors: {
+      notEmpty: 'Не должно быть пустым',
       invalidUrl: 'Cсылка должна быть валидным URL',
       rssAlreadyExists: 'RSS уже существует',
-      netWorkError: 'Cетевая ошибка',
-      parsingError: 'Синтаксическая ошибка',
+      noRSS: 'Ресурс не содержит валидный RSS',
+      netWorkError: 'Ошибка сети',
+    },
+    success: {
+      rssAdded: 'RSS успешно загружен',
     },
     containers: {
       posts: 'Посты',

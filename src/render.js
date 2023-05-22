@@ -1,6 +1,10 @@
 import { buildContainer, setAttributes } from './utils/helpers.js';
 
 const renderError = (elements, error, i18nInstance) => {
+  console.lor('error', error);
+  if (error === null) {
+    return;
+  }
   const { input, feedback } = elements;
   input.classList.add('is-invalid');
   feedback.textContent = i18nInstance.t(`errors.${error}`);
@@ -8,14 +12,16 @@ const renderError = (elements, error, i18nInstance) => {
   feedback.classList.remove('text-success');
 };
 
-const renderValidState = (elements) => {
-  const { input, feedback, form } = elements;
-  input.classList.remove('is-invalid');
-  feedback.classList.remove('text-danger');
-  feedback.classList.add('text-success');
-  feedback.innerHTML = '';
-  form.reset();
-  input.focus();
+const renderValidState = (elements, value) => {
+  if (value === 'true') {
+    const { input, feedback, form } = elements;
+    input.classList.remove('is-invalid');
+    feedback.classList.remove('text-danger');
+    feedback.classList.add('text-success');
+    feedback.innerHTML = '';
+    form.reset();
+    input.focus();
+  }
 };
 
 const renderFeeds = (elements, state, i18nInstance) => {
@@ -51,62 +57,80 @@ const renderPosts = (elements, state, i18nInstance) => {
 
   const list = container.querySelector('ul');
 
-  state.posts.forEach((postList) => {
-    postList.forEach((post) => {
-      const listItem = document.createElement('li');
-      listItem.classList.add(
-        'list-group-item',
-        'd-flex',
-        'justify-content-between',
-        'align-items-start',
-        'border-0',
-        'border-end-0',
-      );
+  state.posts.forEach((post) => {
+    const listItem = document.createElement('li');
+    listItem.classList.add(
+      'list-group-item',
+      'd-flex',
+      'justify-content-between',
+      'align-items-start',
+      'border-0',
+      'border-end-0',
+    );
 
-      const link = document.createElement('a');
-      link.classList.add('fw-bold');
-      link.href = post.link;
-      setAttributes(link, { 'data-id': `${post.id}`, target: '_blank', rel: 'noopener noreferrer' });
-      link.textContent = post.title;
+    const link = document.createElement('a');
+    link.classList.add('fw-bold');
+    link.href = post.link;
+    setAttributes(link, { 'data-id': `${post.id}`, target: '_blank', rel: 'noopener noreferrer' });
+    link.textContent = post.title;
 
-      const button = document.createElement('button');
-      button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
-      setAttributes(button, {
-        type: 'button',
-        'data-id': `${post.id}`,
-        'data-bs-toggle': 'modal',
-        'data-bs-target': '#modal',
-      });
-      button.textContent = i18nInstance.t('buttons.read');
-
-      listItem.replaceChildren(link, button);
-      list.appendChild(listItem);
+    const button = document.createElement('button');
+    button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
+    setAttributes(button, {
+      type: 'button',
+      'data-id': `${post.id}`,
+      'data-bs-toggle': 'modal',
+      'data-bs-target': '#modal',
     });
-  });
+    button.textContent = i18nInstance.t('buttons.read');
 
+    listItem.replaceChildren(link, button);
+    list.appendChild(listItem);
+  });
   containerPosts.appendChild(container);
+};
+
+const renderModal = (elements, state, postId) => {
+  const { title, text, link } = elements.modal;
+  const curPost = state.posts.flat().find(({ id }) => id === postId);
+  title.textContent = curPost.title;
+  text.textContent = curPost.description;
+  link.href = curPost.link;
+};
+
+const renderViewedPosts = (elements, postIds) => {
+  const { containerPosts } = elements;
+  return postIds.forEach((id) => {
+    const viewedPost = containerPosts.querySelector(`[data-id="${id}"]`);
+    viewedPost.classList.remove('fw-bold');
+    viewedPost.classList.add('fw-normal', 'link-secondary');
+  });
 };
 
 export default (elements, state, i18nInstance) => (path, value) => {
   switch (path) {
     case 'form.valid':
       if (value === 'true') {
-        renderValidState(elements);
+        renderValidState(elements, value);
       }
       break;
-    case 'form.error':
-      if (value !== null) {
-        renderError(elements, value, i18nInstance);
-      }
-      break;
-    case 'form.state':
+    case 'loadingProcess.state':
       if (value === 'finished') {
         renderFeeds(elements, state, i18nInstance);
         renderPosts(elements, state, i18nInstance);
       }
       break;
+    case 'error':
+      renderError(elements, value, i18nInstance);
+      break;
     case 'posts':
       renderPosts(elements, state, i18nInstance);
+      break;
+    case 'modal.postId':
+      renderModal(elements, state, value);
+      break;
+    case 'modal.viewedPosts':
+      renderViewedPosts(elements, value);
       break;
     default:
       break;
