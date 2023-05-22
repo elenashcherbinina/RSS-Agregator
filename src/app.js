@@ -9,7 +9,7 @@ import render from './render.js';
 import parse from './parser.js';
 
 const validate = (url, urls) => {
-  const schema = yup.string().url().notOneOf(urls);
+  const schema = yup.string().required().url().notOneOf(urls);
   return schema.validate(url);
 };
 
@@ -94,8 +94,10 @@ export default () => {
         watchedState.loadingProcess.state = 'sending';
         const formData = new FormData(e.target);
         const curUrl = formData.get('url').trim();
+        console.log('state', state);
 
         const urls = state.feeds.map(({ url }) => url);
+        console.log('urls', urls);
 
         validate(curUrl, urls)
           .then((url) => {
