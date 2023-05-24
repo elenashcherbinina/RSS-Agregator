@@ -1,12 +1,9 @@
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-// import path from 'path';
 
 export default {
   mode: process.env.NODE_ENV || 'development',
   entry: './src/index.js',
   output: {
-    //   path: path.resolve(__dirname, './dist'),
-    //   filename: 'index_bundle.js',
     clean: true,
   },
   plugins: [
