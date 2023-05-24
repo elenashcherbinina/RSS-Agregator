@@ -64,7 +64,7 @@ export default () => {
 
       const state = {
         form: {
-          state: 'valid',
+          state: 'filling',
         },
         loadingProcess: {
           state: 'filling',
