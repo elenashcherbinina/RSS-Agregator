@@ -14,8 +14,13 @@ const validate = (url, urls) => {
 };
 
 const getData = (url) => {
-  const proxy = `https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(url)}`;
-  return axios.get(proxy);
+  try {
+    const proxy = `https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(url)}`;
+    return axios.get(proxy);
+  } catch (e) {
+    console.log(e);
+    throw new Error('netWorkError');
+  }
 };
 
 const getUpdates = (watchedState) => {
@@ -121,6 +126,7 @@ export default () => {
             watchedState.loadingProcess.state = 'finished';
           })
           .catch((error) => {
+            console.log('catch error', error);
             watchedState.form.state = 'invalid';
             watchedState.loadingProcess.state = 'failed';
             watchedState.error = error.message;

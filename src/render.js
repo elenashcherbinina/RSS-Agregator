@@ -6,9 +6,14 @@ const renderError = (elements, error, i18nInstance) => {
   }
   const { input, feedback } = elements;
   input.classList.add('is-invalid');
-  feedback.textContent = i18nInstance.t(`errors.${error}`);
   feedback.classList.add('text-danger');
   feedback.classList.remove('text-success');
+
+  if (error === 'Network Error') {
+    feedback.textContent = i18nInstance.t('errors.netWorkError');
+  } else {
+    feedback.textContent = i18nInstance.t(`errors.${error}`);
+  }
 };
 
 const renderValidState = (elements, i18nInstance) => {
