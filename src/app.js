@@ -94,10 +94,8 @@ export default () => {
         watchedState.loadingProcess.state = 'sending';
         const formData = new FormData(e.target);
         const curUrl = formData.get('url').trim();
-        console.log('state', state);
 
         const urls = state.feeds.map(({ url }) => url);
-        console.log('urls', urls);
 
         validate(curUrl, urls)
           .then((url) => {

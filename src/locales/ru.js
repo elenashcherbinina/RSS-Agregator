@@ -2,7 +2,7 @@ export default {
   translation: {
     errors: {
       notEmpty: 'Не должно быть пустым',
-      invalidUrl: 'Cсылка должна быть валидным URL',
+      invalidUrl: 'Ссылка должна быть валидным URL',
       rssAlreadyExists: 'RSS уже существует',
       noRSS: 'Ресурс не содержит валидный RSS',
       netWorkError: 'Ошибка сети',

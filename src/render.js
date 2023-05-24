@@ -1,7 +1,6 @@
 import { buildContainer, setAttributes } from './utils/helpers.js';
 
 const renderError = (elements, error, i18nInstance) => {
-  console.log('error', error);
   if (error === null) {
     return;
   }
