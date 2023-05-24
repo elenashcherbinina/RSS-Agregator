@@ -11,16 +11,14 @@ const renderError = (elements, error, i18nInstance) => {
   feedback.classList.remove('text-success');
 };
 
-const renderValidState = (elements, value, i18nInstance) => {
-  if (value === 'true') {
-    const { input, feedback, form } = elements;
-    input.classList.remove('is-invalid');
-    feedback.classList.remove('text-danger');
-    feedback.classList.add('text-success');
-    feedback.innerHTML = i18nInstance.t('success.rssAdded');
-    form.reset();
-    input.focus();
-  }
+const renderValidState = (elements, i18nInstance) => {
+  const { input, feedback, form } = elements;
+  input.classList.remove('is-invalid');
+  feedback.classList.remove('text-danger');
+  feedback.classList.add('text-success');
+  feedback.innerHTML = i18nInstance.t('success.rssAdded');
+  form.reset();
+  input.focus();
 };
 
 const renderFeeds = (elements, state, i18nInstance) => {
@@ -108,9 +106,9 @@ const renderViewedPosts = (elements, postIds) => {
 
 export default (elements, state, i18nInstance) => (path, value) => {
   switch (path) {
-    case 'form.valid':
-      if (value === 'true') {
-        renderValidState(elements, value, i18nInstance);
+    case 'form.state':
+      if (value === 'valid') {
+        renderValidState(elements, i18nInstance);
       }
       break;
     case 'loadingProcess.state':

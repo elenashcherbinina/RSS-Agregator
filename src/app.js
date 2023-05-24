@@ -64,7 +64,7 @@ export default () => {
 
       const state = {
         form: {
-          valid: true,
+          state: 'valid',
         },
         loadingProcess: {
           state: 'filling',
@@ -99,9 +99,8 @@ export default () => {
 
         validate(curUrl, urls)
           .then((url) => {
-            watchedState.form.valid = 'true';
-            watchedState.loadingProcess.state = 'loading';
             watchedState.error = null;
+            watchedState.loadingProcess.state = 'loading';
             return getData(url);
           })
           .then((response) => response.data.contents)
@@ -118,10 +117,11 @@ export default () => {
 
             watchedState.feeds.unshift(feed);
             watchedState.posts.unshift(...postsWithId);
+            watchedState.form.state = 'valid';
             watchedState.loadingProcess.state = 'finished';
           })
           .catch((error) => {
-            watchedState.form.valid = 'false';
+            watchedState.form.state = 'invalid';
             watchedState.loadingProcess.state = 'failed';
             watchedState.error = error.message;
           });
