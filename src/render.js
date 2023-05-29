@@ -1,40 +1,52 @@
-import { buildContainer, setAttributes } from './utils/helpers.js';
+const buildContainer = (name, i18nInstance) => {
+  const container = document.createElement('div');
+  container.classList.add('card', 'border-0');
 
-const renderError = (elements, error, i18nInstance) => {
-  if (error === null) {
-    return;
-  }
+  const div = document.createElement('div');
+  div.classList.add('card-body');
+  const h2 = document.createElement('h2');
+  h2.classList.add('card-title', 'h4');
+  h2.textContent = i18nInstance.t(`containers.${name}`);
+  div.appendChild(h2);
+
+  const ul = document.createElement('ul');
+  ul.classList.add('list-group', 'border-0', 'rounded-0');
+  container.replaceChildren(div, ul);
+  return container;
+};
+
+const setAttributes = (el, attrs) => {
+  Object.entries(attrs).forEach((element) => {
+    const [key, value] = element;
+    el.setAttribute(key, value);
+  });
+};
+
+const renderForm = (elements, formState, i18nInstance) => {
   const { input, feedback } = elements;
-  input.classList.add('is-invalid');
-  feedback.classList.add('text-danger');
-  feedback.classList.remove('text-success');
+  const { isValidate, error } = formState;
 
-  if (error === 'Network Error') {
-    feedback.textContent = i18nInstance.t('errors.netWorkError');
+  if (isValidate === 'true') {
+    input.classList.remove('is-invalid');
+    feedback.classList.remove('text-danger');
+    feedback.classList.add('text-success');
   } else {
+    input.classList.add('is-invalid');
+    feedback.classList.remove('text-success');
+    feedback.classList.add('text-danger');
     feedback.textContent = i18nInstance.t(`errors.${error}`);
   }
 };
 
-const renderValidState = (elements, i18nInstance) => {
-  const { input, feedback, form } = elements;
-  input.classList.remove('is-invalid');
-  feedback.classList.remove('text-danger');
-  feedback.classList.add('text-success');
-  feedback.innerHTML = i18nInstance.t('success.rssAdded');
-  form.reset();
-  input.focus();
-};
-
-const renderFeeds = (elements, state, i18nInstance) => {
+const renderFeeds = (elements, initialState, i18nInstance) => {
   const { containerFeeds } = elements;
+  const { feeds } = initialState;
+
   containerFeeds.innerHTML = '';
-
   const container = buildContainer('feeds', i18nInstance);
-
   const list = container.querySelector('ul');
 
-  state.feeds.forEach((feed) => {
+  feeds.forEach((feed) => {
     const listItem = document.createElement('li');
     listItem.classList.add('list-group-item', 'border-0', 'border-end-0');
 
@@ -52,14 +64,15 @@ const renderFeeds = (elements, state, i18nInstance) => {
   containerFeeds.appendChild(container);
 };
 
-const renderPosts = (elements, state, i18nInstance) => {
+const renderPosts = (elements, initialState, i18nInstance) => {
   const { containerPosts } = elements;
+  const { posts } = initialState;
+
   containerPosts.innerHTML = '';
   const container = buildContainer('posts', i18nInstance);
-
   const list = container.querySelector('ul');
 
-  state.posts.forEach((post) => {
+  posts.forEach((post) => {
     const listItem = document.createElement('li');
     listItem.classList.add(
       'list-group-item',
@@ -92,9 +105,38 @@ const renderPosts = (elements, state, i18nInstance) => {
   containerPosts.appendChild(container);
 };
 
-const renderModal = (elements, state, postId) => {
+const renderLoadingProcess = (elements, loadingProcessState, i18nInstance) => {
+  const { input, feedback, submit } = elements;
+  const { status, error } = loadingProcessState;
+
+  switch (status) {
+    case 'loading':
+      submit.setAttribute('disabled', 'disabled');
+      break;
+    case 'finished':
+      input.value = '';
+      input.focus();
+      submit.removeAttribute('disabled');
+      feedback.textContent = i18nInstance.t('success.rssAdded');
+      break;
+    case 'failed':
+      submit.removeAttribute('disabled');
+      if (error === 'Network Error') {
+        feedback.textContent = i18nInstance.t('errors.netWorkError');
+      } else {
+        feedback.textContent = i18nInstance.t(`errors.${error}`);
+      }
+      break;
+    default:
+      throw new Error(`${status}`);
+  }
+};
+
+const renderModal = (elements, initialState, postId) => {
   const { title, text, link } = elements.modal;
-  const curPost = state.posts.flat().find(({ id }) => id === postId);
+  const { posts } = initialState;
+
+  const curPost = posts.flat().find(({ id }) => id === postId);
   title.textContent = curPost.title;
   text.textContent = curPost.description;
   link.href = curPost.link;
@@ -102,6 +144,7 @@ const renderModal = (elements, state, postId) => {
 
 const renderViewedPosts = (elements, postIds) => {
   const { containerPosts } = elements;
+
   return postIds.forEach((id) => {
     const viewedPost = containerPosts.querySelector(`[data-id="${id}"]`);
     viewedPost.classList.remove('fw-bold');
@@ -109,27 +152,22 @@ const renderViewedPosts = (elements, postIds) => {
   });
 };
 
-export default (elements, state, i18nInstance) => (path, value) => {
+export default (elements, initialState, i18nInstance) => (path, value) => {
   switch (path) {
-    case 'form.state':
-      if (value === 'valid') {
-        renderValidState(elements, i18nInstance);
-      }
+    case 'form':
+      renderForm(elements, value, i18nInstance);
       break;
-    case 'loadingProcess.state':
-      if (value === 'finished') {
-        renderFeeds(elements, state, i18nInstance);
-        renderPosts(elements, state, i18nInstance);
-      }
+    case 'loadingProcess':
+      renderLoadingProcess(elements, value, i18nInstance);
       break;
-    case 'error':
-      renderError(elements, value, i18nInstance);
+    case 'feeds':
+      renderFeeds(elements, initialState, i18nInstance);
       break;
     case 'posts':
-      renderPosts(elements, state, i18nInstance);
+      renderPosts(elements, initialState, i18nInstance);
       break;
     case 'modal.postId':
-      renderModal(elements, state, value);
+      renderModal(elements, initialState, value);
       break;
     case 'modal.viewedPosts':
       renderViewedPosts(elements, value);

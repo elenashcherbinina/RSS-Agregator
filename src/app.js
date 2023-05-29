@@ -5,6 +5,7 @@ import uniqueId from 'lodash/uniqueId.js';
 import axios from 'axios';
 
 import resources from './locales/index.js';
+import locale from './locales/yupLocale.js';
 import render from './render.js';
 import parse from './parser.js';
 
@@ -13,19 +14,16 @@ const validate = (url, urls) => {
   return schema.validate(url);
 };
 
-const getData = (url) => {
-  try {
-    const proxy = `https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(url)}`;
-    return axios.get(proxy);
-  } catch (e) {
-    console.log(e);
-    throw new Error('netWorkError');
-  }
+const getProxiUrl = (url) => {
+  const proxy = new URL('https://allorigins.hexlet.app/get');
+  proxy.searchParams.set('url', url);
+  proxy.searchParams.set('disableCache', true);
+  return proxy;
 };
 
 const getUpdates = (watchedState) => {
   const promises = watchedState.feeds.map(({ id, url }) => {
-    const request = getData(url);
+    const request = axios.get(getProxiUrl(url));
 
     return request.then((response) => {
       const { posts } = parse(response.data.contents);
@@ -44,6 +42,37 @@ const getUpdates = (watchedState) => {
 };
 
 export default () => {
+  const initialState = {
+    form: {
+      isValidate: null,
+      error: null,
+    },
+    loadingProcess: {
+      status: 'filling',
+      error: null,
+    },
+    feeds: [],
+    posts: [],
+    modal: {
+      postId: null,
+      viewedPosts: new Set(),
+    },
+  };
+
+  const elements = {
+    form: document.querySelector('form'),
+    input: document.querySelector('input'),
+    feedback: document.querySelector('.feedback'),
+    submit: document.querySelector('.rss-form button[type="submit"]'),
+    containerFeeds: document.querySelector('div.feeds'),
+    containerPosts: document.querySelector('div.posts'),
+    modal: {
+      title: document.querySelector('.modal-title'),
+      text: document.querySelector('.modal-body'),
+      link: document.querySelector('a.full-article'),
+    },
+  };
+
   const defaultLanguage = 'ru';
   const i18nInstance = i18next.createInstance();
 
@@ -54,59 +83,22 @@ export default () => {
       resources,
     })
     .then(() => {
-      const elements = {
-        form: document.querySelector('form'),
-        input: document.querySelector('input'),
-        feedback: document.querySelector('.feedback'),
-        containerFeeds: document.querySelector('div.feeds'),
-        containerPosts: document.querySelector('div.posts'),
-        modal: {
-          title: document.querySelector('.modal-title'),
-          text: document.querySelector('.modal-body'),
-          link: document.querySelector('a.full-article'),
-        },
-      };
+      yup.setLocale(locale);
 
-      const state = {
-        form: {
-          state: 'filling',
-        },
-        loadingProcess: {
-          state: 'filling',
-        },
-        error: null,
-        feeds: [],
-        posts: [],
-        modal: {
-          postId: null,
-          viewedPosts: new Set(),
-        },
-      };
-
-      yup.setLocale({
-        mixed: {
-          notOneOf: 'rssAlreadyExists',
-        },
-        string: {
-          url: 'invalidUrl',
-        },
-      });
-
-      const watchedState = onChange(state, render(elements, state, i18nInstance));
+      const watchedState = onChange(initialState, render(elements, initialState, i18nInstance));
 
       elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
-        watchedState.loadingProcess.state = 'sending';
+        watchedState.loadingProcess.status = 'sending';
         const formData = new FormData(e.target);
         const curUrl = formData.get('url').trim();
 
-        const urls = state.feeds.map(({ url }) => url);
+        const urls = initialState.feeds.map(({ url }) => url);
 
         validate(curUrl, urls)
           .then((url) => {
-            watchedState.error = null;
-            watchedState.loadingProcess.state = 'loading';
-            return getData(url);
+            watchedState.loadingProcess.status = 'loading';
+            return axios.get(getProxiUrl(url));
           })
           .then((response) => response.data.contents)
           .then((contents) => {
@@ -122,14 +114,15 @@ export default () => {
 
             watchedState.feeds.unshift(feed);
             watchedState.posts.unshift(...postsWithId);
-            watchedState.form.state = 'valid';
-            watchedState.loadingProcess.state = 'finished';
+            watchedState.form = { isValidate: 'true', error: null };
+            watchedState.loadingProcess = { status: 'finished', error: null };
           })
           .catch((error) => {
-            console.log('catch error', error);
-            watchedState.form.state = 'invalid';
-            watchedState.loadingProcess.state = 'failed';
-            watchedState.error = error.message;
+            if (error.name === 'ValidationError') {
+              watchedState.form = { isValidate: 'false', error: error.message };
+            } else {
+              watchedState.loadingProcess = { status: 'failed', error: error.message };
+            }
           });
       });
       elements.containerPosts.addEventListener('click', (event) => {
@@ -137,7 +130,6 @@ export default () => {
         watchedState.modal.postId = Number(clickedPostId);
         watchedState.modal.viewedPosts.add(Number(clickedPostId));
       });
-
       setTimeout(() => getUpdates(watchedState), 5000);
     });
 };
