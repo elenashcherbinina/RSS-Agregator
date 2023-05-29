@@ -1,5 +1,5 @@
 [![Actions Status](https://github.com/elenashcherbinina/frontend-project-11/workflows/hexlet-check/badge.svg)](https://github.com/elenashcherbinina/frontend-project-11/actions)
-[![Node CI](https://github.com/elenashcherbinina/frontend-project-11/actions/workflows/node.yml/badge.svg)](https://github.com/elenashcherbinina/frontend-project-11/actions/workflows/node.yml)
+[![linter](https://github.com/elenashcherbinina/frontend-project-11/actions/workflows/linter.yml/badge.svg)](https://github.com/elenashcherbinina/frontend-project-11/actions/workflows/linter.yml)
 [![Maintainability](https://api.codeclimate.com/v1/badges/c228bb7907174493db89/maintainability)](https://codeclimate.com/github/elenashcherbinina/frontend-project-11/maintainability)
 
 ## Project description:
