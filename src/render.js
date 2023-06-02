@@ -66,7 +66,8 @@ const renderFeeds = (elements, initialState, i18nInstance) => {
 
 const renderPosts = (elements, initialState, i18nInstance) => {
   const { containerPosts } = elements;
-  const { posts } = initialState;
+  const { posts, modal } = initialState;
+  const { viewedPosts } = modal;
 
   containerPosts.innerHTML = '';
   const container = buildContainer('posts', i18nInstance);
@@ -84,10 +85,15 @@ const renderPosts = (elements, initialState, i18nInstance) => {
     );
 
     const link = document.createElement('a');
-    link.classList.add('fw-bold');
     link.href = post.link;
     setAttributes(link, { 'data-id': `${post.id}`, target: '_blank', rel: 'noopener noreferrer' });
     link.textContent = post.title;
+
+    if (viewedPosts.has(post.id)) {
+      link.classList.add('fw-normal', 'link-secondary');
+    } else {
+      link.classList.add('fw-bold');
+    }
 
     const button = document.createElement('button');
     button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
@@ -112,15 +118,18 @@ const renderLoadingProcess = (elements, loadingProcessState, i18nInstance) => {
   switch (status) {
     case 'loading':
       submit.setAttribute('disabled', 'disabled');
+      feedback.textContent = '';
       break;
     case 'finished':
       input.value = '';
       input.focus();
       submit.removeAttribute('disabled');
+      feedback.classList.add('text-success');
       feedback.textContent = i18nInstance.t('success.rssAdded');
       break;
     case 'failed':
       submit.removeAttribute('disabled');
+      feedback.classList.add('text-danger');
       if (error === 'Network Error') {
         feedback.textContent = i18nInstance.t('errors.netWorkError');
       } else {
@@ -142,16 +151,6 @@ const renderModal = (elements, initialState, postId) => {
   link.href = curPost.link;
 };
 
-const renderViewedPosts = (elements, postIds) => {
-  const { containerPosts } = elements;
-
-  return postIds.forEach((id) => {
-    const viewedPost = containerPosts.querySelector(`[data-id="${id}"]`);
-    viewedPost.classList.remove('fw-bold');
-    viewedPost.classList.add('fw-normal', 'link-secondary');
-  });
-};
-
 export default (elements, initialState, i18nInstance) => (path, value) => {
   switch (path) {
     case 'form':
@@ -170,7 +169,7 @@ export default (elements, initialState, i18nInstance) => (path, value) => {
       renderModal(elements, initialState, value);
       break;
     case 'modal.viewedPosts':
-      renderViewedPosts(elements, value);
+      renderPosts(elements, initialState, i18nInstance);
       break;
     default:
       break;

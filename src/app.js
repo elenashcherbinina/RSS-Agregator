@@ -9,9 +9,21 @@ import locale from './locales/yupLocale.js';
 import render from './render.js';
 import parse from './parser.js';
 
+const TIMEOUT = 5000;
+const DEFAULT_LANGUAGE = 'ru';
+
 const validate = (url, urls) => {
   const schema = yup.string().required().url().notOneOf(urls);
   return schema.validate(url);
+};
+
+const generatePostsWithId = (posts, feedId) => {
+  const postsWithId = posts.map((post) => ({
+    ...post,
+    feedId,
+    id: Number(uniqueId()),
+  }));
+  return postsWithId;
 };
 
 const getProxiUrl = (url) => {
@@ -21,24 +33,42 @@ const getProxiUrl = (url) => {
   return proxy;
 };
 
+const loadRSS = (url, watchedState) => {
+  watchedState.loadingProcess = { status: 'loading', error: null };
+
+  return axios
+    .get(getProxiUrl(url), { timeout: TIMEOUT })
+    .then((response) => response.data.contents)
+    .then((contents) => {
+      const { feed, posts } = parse(contents);
+      feed.url = url;
+      feed.id = Number(uniqueId());
+      const postsWithId = generatePostsWithId(posts, feed.id);
+
+      watchedState.loadingProcess = { status: 'finished', error: null };
+      watchedState.feeds.unshift(feed);
+      watchedState.posts.unshift(...postsWithId);
+    })
+    .catch((error) => {
+      watchedState.loadingProcess = { status: 'failed', error: error.message };
+      console.log('watchedState loading', watchedState);
+    });
+};
+
 const getUpdates = (watchedState) => {
   const promises = watchedState.feeds.map(({ id, url }) => {
-    const request = axios.get(getProxiUrl(url));
+    const request = axios.get(getProxiUrl(url), { timeout: TIMEOUT });
 
     return request.then((response) => {
       const { posts } = parse(response.data.contents);
       const curPostsLinks = watchedState.posts.map((post) => post.link);
+
       const newPosts = posts.filter((item) => !curPostsLinks.includes(item.link));
-      if (newPosts.length !== 0) {
-        const newPostsWithId = newPosts.map((newPost) => {
-          const newPostWithId = { ...newPost, feedId: id, id: Number(uniqueId()) };
-          return newPostWithId;
-        });
-        watchedState.posts.unshift(...newPostsWithId);
-      }
+      const newPostsWithId = generatePostsWithId(newPosts, id);
+      watchedState.posts.unshift(...newPostsWithId);
     });
   });
-  return Promise.all(promises).then(setTimeout(() => getUpdates(watchedState), 5000));
+  return Promise.all(promises).then(setTimeout(() => getUpdates(watchedState), TIMEOUT));
 };
 
 export default () => {
@@ -63,22 +93,21 @@ export default () => {
     form: document.querySelector('form'),
     input: document.querySelector('input'),
     feedback: document.querySelector('.feedback'),
-    submit: document.querySelector('.rss-form button[type="submit"]'),
-    containerFeeds: document.querySelector('div.feeds'),
-    containerPosts: document.querySelector('div.posts'),
+    submit: document.querySelector('.submit'),
+    containerFeeds: document.querySelector('.feeds'),
+    containerPosts: document.querySelector('.posts'),
     modal: {
       title: document.querySelector('.modal-title'),
       text: document.querySelector('.modal-body'),
-      link: document.querySelector('a.full-article'),
+      link: document.querySelector('.modal-link'),
     },
   };
 
-  const defaultLanguage = 'ru';
   const i18nInstance = i18next.createInstance();
 
   i18nInstance
     .init({
-      lng: defaultLanguage,
+      lng: DEFAULT_LANGUAGE,
       debug: false,
       resources,
     })
@@ -97,39 +126,21 @@ export default () => {
 
         validate(curUrl, urls)
           .then((url) => {
-            watchedState.loadingProcess.status = 'loading';
-            return axios.get(getProxiUrl(url));
-          })
-          .then((response) => response.data.contents)
-          .then((contents) => {
-            const { feed, posts } = parse(contents);
-
-            feed.url = curUrl;
-            feed.id = Number(uniqueId());
-
-            const postsWithId = posts.map((post) => {
-              const postWithId = { ...post, feedId: feed.id, id: Number(uniqueId()) };
-              return postWithId;
-            });
-
-            watchedState.feeds.unshift(feed);
-            watchedState.posts.unshift(...postsWithId);
             watchedState.form = { isValidate: 'true', error: null };
-            watchedState.loadingProcess = { status: 'finished', error: null };
+            loadRSS(url, watchedState);
           })
           .catch((error) => {
-            if (error.name === 'ValidationError') {
-              watchedState.form = { isValidate: 'false', error: error.message };
-            } else {
-              watchedState.loadingProcess = { status: 'failed', error: error.message };
-            }
+            watchedState.form = { isValidate: 'false', error: error.message };
           });
       });
       elements.containerPosts.addEventListener('click', (event) => {
         const clickedPostId = event.target.dataset.id;
+        if (!clickedPostId) {
+          return;
+        }
         watchedState.modal.postId = Number(clickedPostId);
         watchedState.modal.viewedPosts.add(Number(clickedPostId));
       });
-      setTimeout(() => getUpdates(watchedState), 5000);
+      setTimeout(() => getUpdates(watchedState), TIMEOUT);
     });
 };
