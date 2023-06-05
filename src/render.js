@@ -22,10 +22,7 @@ const setAttributes = (el, attrs) => {
   });
 };
 
-const renderForm = (elements, formState, i18nInstance) => {
-  const { input, feedback } = elements;
-  const { isValidate, error } = formState;
-
+const renderForm = ({ input, feedback }, { isValidate, error }, i18nInstance) => {
   if (isValidate === 'true') {
     input.classList.remove('is-invalid');
     feedback.classList.remove('text-danger');
@@ -38,10 +35,7 @@ const renderForm = (elements, formState, i18nInstance) => {
   }
 };
 
-const renderFeeds = (elements, initialState, i18nInstance) => {
-  const { containerFeeds } = elements;
-  const { feeds } = initialState;
-
+const renderFeeds = ({ containerFeeds }, { feeds }, i18nInstance) => {
   containerFeeds.innerHTML = '';
   const container = buildContainer('feeds', i18nInstance);
   const list = container.querySelector('ul');
@@ -64,11 +58,7 @@ const renderFeeds = (elements, initialState, i18nInstance) => {
   containerFeeds.appendChild(container);
 };
 
-const renderPosts = (elements, initialState, i18nInstance) => {
-  const { containerPosts } = elements;
-  const { posts, modal } = initialState;
-  const { viewedPosts } = modal;
-
+const renderPosts = ({ containerPosts }, { posts, viewedPosts }, i18nInstance) => {
   containerPosts.innerHTML = '';
   const container = buildContainer('posts', i18nInstance);
   const list = container.querySelector('ul');
@@ -111,14 +101,11 @@ const renderPosts = (elements, initialState, i18nInstance) => {
   containerPosts.appendChild(container);
 };
 
-const renderLoadingProcess = (elements, loadingProcessState, i18nInstance) => {
-  const { input, feedback, submit } = elements;
-  const { status, error } = loadingProcessState;
-
+const renderLoadingProcess = ({ input, feedback, submit }, { status, error }, i18nInstance) => {
   switch (status) {
     case 'loading':
       submit.setAttribute('disabled', 'disabled');
-      feedback.textContent = '';
+      feedback.textContent = i18nInstance.t('success.loading');
       break;
     case 'finished':
       input.value = '';
@@ -130,28 +117,21 @@ const renderLoadingProcess = (elements, loadingProcessState, i18nInstance) => {
     case 'failed':
       submit.removeAttribute('disabled');
       feedback.classList.add('text-danger');
-      if (error === 'Network Error') {
-        feedback.textContent = i18nInstance.t('errors.netWorkError');
-      } else {
-        feedback.textContent = i18nInstance.t(`errors.${error}`);
-      }
+      feedback.textContent = i18nInstance.t(`errors.${error}`);
       break;
     default:
       throw new Error(`${status}`);
   }
 };
 
-const renderModal = (elements, initialState, postId) => {
-  const { title, text, link } = elements.modal;
-  const { posts } = initialState;
-
-  const curPost = posts.flat().find(({ id }) => id === postId);
-  title.textContent = curPost.title;
-  text.textContent = curPost.description;
-  link.href = curPost.link;
+const renderModal = ({ title, text, link }, { posts }, postId) => {
+  const viewedPost = posts.flat().find(({ id }) => id === postId);
+  title.textContent = viewedPost.title;
+  text.textContent = viewedPost.description;
+  link.href = viewedPost.link;
 };
 
-export default (elements, initialState, i18nInstance) => (path, value) => {
+export default (elements, state, i18nInstance) => (path, value) => {
   switch (path) {
     case 'form':
       renderForm(elements, value, i18nInstance);
@@ -160,16 +140,16 @@ export default (elements, initialState, i18nInstance) => (path, value) => {
       renderLoadingProcess(elements, value, i18nInstance);
       break;
     case 'feeds':
-      renderFeeds(elements, initialState, i18nInstance);
+      renderFeeds(elements, state, i18nInstance);
       break;
     case 'posts':
-      renderPosts(elements, initialState, i18nInstance);
+      renderPosts(elements, state, i18nInstance);
+      break;
+    case 'viewedPosts':
+      renderPosts(elements, state, i18nInstance);
       break;
     case 'modal.postId':
-      renderModal(elements, initialState, value);
-      break;
-    case 'modal.viewedPosts':
-      renderPosts(elements, initialState, i18nInstance);
+      renderModal(elements.modal, state, value);
       break;
     default:
       break;

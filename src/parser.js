@@ -1,8 +1,11 @@
 export default (contents) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(contents, 'text/xml');
-  if (doc.querySelector('parsererror')) {
-    throw new Error('noRss');
+  const parserError = doc.querySelector('parsererror');
+  if (parserError) {
+    const error = new Error(parserError.textContent);
+    error.isParserError = true;
+    throw error;
   }
 
   const feed = {

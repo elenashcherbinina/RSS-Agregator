@@ -9,7 +9,8 @@ import locale from './locales/yupLocale.js';
 import render from './render.js';
 import parse from './parser.js';
 
-const TIMEOUT = 5000;
+const UPDATE_TIMEOUT = 5000;
+const REQUEST_TIMEOUT = 10000;
 const DEFAULT_LANGUAGE = 'ru';
 
 const validate = (url, urls) => {
@@ -33,11 +34,27 @@ const getProxiUrl = (url) => {
   return proxy;
 };
 
+const getErrorMessage = (error) => {
+  if (error.isParserError) {
+    return 'noRSS';
+  }
+
+  if (error.isAxiosError) {
+    return 'netWorkError';
+  }
+
+  if (error.code === 'ECONNABORTED') {
+    return 'timeoutError';
+  }
+
+  return 'unknownError';
+};
+
 const loadRSS = (url, watchedState) => {
   watchedState.loadingProcess = { status: 'loading', error: null };
 
   return axios
-    .get(getProxiUrl(url), { timeout: TIMEOUT })
+    .get(getProxiUrl(url), { timeout: REQUEST_TIMEOUT })
     .then((response) => response.data.contents)
     .then((contents) => {
       const { feed, posts } = parse(contents);
@@ -50,14 +67,13 @@ const loadRSS = (url, watchedState) => {
       watchedState.posts.unshift(...postsWithId);
     })
     .catch((error) => {
-      watchedState.loadingProcess = { status: 'failed', error: error.message };
-      console.log('watchedState loading', watchedState);
+      watchedState.loadingProcess = { status: 'failed', error: getErrorMessage(error) };
     });
 };
 
 const getUpdates = (watchedState) => {
   const promises = watchedState.feeds.map(({ id, url }) => {
-    const request = axios.get(getProxiUrl(url), { timeout: TIMEOUT });
+    const request = axios.get(getProxiUrl(url), { timeout: REQUEST_TIMEOUT });
 
     return request.then((response) => {
       const { posts } = parse(response.data.contents);
@@ -68,7 +84,7 @@ const getUpdates = (watchedState) => {
       watchedState.posts.unshift(...newPostsWithId);
     });
   });
-  return Promise.all(promises).then(setTimeout(() => getUpdates(watchedState), TIMEOUT));
+  return Promise.all(promises).then(setTimeout(() => getUpdates(watchedState), UPDATE_TIMEOUT));
 };
 
 export default () => {
@@ -83,9 +99,9 @@ export default () => {
     },
     feeds: [],
     posts: [],
+    viewedPosts: new Set(),
     modal: {
       postId: null,
-      viewedPosts: new Set(),
     },
   };
 
@@ -120,27 +136,27 @@ export default () => {
         e.preventDefault();
         watchedState.loadingProcess.status = 'sending';
         const formData = new FormData(e.target);
-        const curUrl = formData.get('url').trim();
-
+        const rssUrl = formData.get('url').trim();
         const urls = initialState.feeds.map(({ url }) => url);
 
-        validate(curUrl, urls)
-          .then((url) => {
+        validate(rssUrl, urls)
+          .then(() => {
             watchedState.form = { isValidate: 'true', error: null };
-            loadRSS(url, watchedState);
+            loadRSS(rssUrl, watchedState);
           })
           .catch((error) => {
             watchedState.form = { isValidate: 'false', error: error.message };
           });
       });
+
       elements.containerPosts.addEventListener('click', (event) => {
-        const clickedPostId = event.target.dataset.id;
-        if (!clickedPostId) {
+        const { id } = event.target.dataset;
+        if (!id) {
           return;
         }
-        watchedState.modal.postId = Number(clickedPostId);
-        watchedState.modal.viewedPosts.add(Number(clickedPostId));
+        watchedState.modal.postId = Number(id);
+        watchedState.viewedPosts.add(Number(id));
       });
-      setTimeout(() => getUpdates(watchedState), TIMEOUT);
+      setTimeout(() => getUpdates(watchedState), UPDATE_TIMEOUT);
     });
 };
