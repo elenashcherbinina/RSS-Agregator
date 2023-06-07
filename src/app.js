@@ -39,11 +39,11 @@ const getErrorMessage = (error) => {
     return 'noRSS';
   }
 
-  if (error.isAxiosError) {
+  if (error.isAxiosError && error.code === 'ERR_NETWORK') {
     return 'netWorkError';
   }
 
-  if (error.code === 'ECONNABORTED') {
+  if (error.isAxiosError && error.code === 'ECONNABORTED') {
     return 'timeoutError';
   }
 

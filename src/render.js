@@ -9,10 +9,10 @@ const buildContainer = (name, i18nInstance) => {
   h2.textContent = i18nInstance.t(`containers.${name}`);
   div.appendChild(h2);
 
-  const ul = document.createElement('ul');
-  ul.classList.add('list-group', 'border-0', 'rounded-0');
-  container.replaceChildren(div, ul);
-  return container;
+  const list = document.createElement('ul');
+  list.classList.add('list-group', 'border-0', 'rounded-0');
+  container.replaceChildren(div, list);
+  return { container, list };
 };
 
 const setAttributes = (el, attrs) => {
@@ -37,8 +37,7 @@ const renderForm = ({ input, feedback }, { isValidate, error }, i18nInstance) =>
 
 const renderFeeds = ({ containerFeeds }, { feeds }, i18nInstance) => {
   containerFeeds.innerHTML = '';
-  const container = buildContainer('feeds', i18nInstance);
-  const list = container.querySelector('ul');
+  const { container, list } = buildContainer('feeds', i18nInstance);
 
   feeds.forEach((feed) => {
     const listItem = document.createElement('li');
@@ -60,8 +59,7 @@ const renderFeeds = ({ containerFeeds }, { feeds }, i18nInstance) => {
 
 const renderPosts = ({ containerPosts }, { posts, viewedPosts }, i18nInstance) => {
   containerPosts.innerHTML = '';
-  const container = buildContainer('posts', i18nInstance);
-  const list = container.querySelector('ul');
+  const { container, list } = buildContainer('posts', i18nInstance);
 
   posts.forEach((post) => {
     const listItem = document.createElement('li');
