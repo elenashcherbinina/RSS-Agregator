@@ -31,7 +31,7 @@ const getProxiUrl = (url) => {
   const proxy = new URL('https://allorigins.hexlet.app/get');
   proxy.searchParams.set('url', url);
   proxy.searchParams.set('disableCache', true);
-  return proxy;
+  return proxy.toString();
 };
 
 const getErrorMessage = (error) => {
@@ -75,14 +75,18 @@ const getUpdates = (watchedState) => {
   const promises = watchedState.feeds.map(({ id, url }) => {
     const request = axios.get(getProxiUrl(url), { timeout: REQUEST_TIMEOUT });
 
-    return request.then((response) => {
-      const { posts } = parse(response.data.contents);
-      const curPostsLinks = watchedState.posts.map((post) => post.link);
+    return request
+      .then((response) => {
+        const { posts } = parse(response.data.contents);
+        const curPostsLinks = watchedState.posts.map((post) => post.link);
 
-      const newPosts = posts.filter((item) => !curPostsLinks.includes(item.link));
-      const newPostsWithId = generatePostsWithId(newPosts, id);
-      watchedState.posts.unshift(...newPostsWithId);
-    });
+        const newPosts = posts.filter((item) => !curPostsLinks.includes(item.link));
+        const newPostsWithId = generatePostsWithId(newPosts, id);
+        watchedState.posts.unshift(...newPostsWithId);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   });
   return Promise.all(promises).then(setTimeout(() => getUpdates(watchedState), UPDATE_TIMEOUT));
 };
