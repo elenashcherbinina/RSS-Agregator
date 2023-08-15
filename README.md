@@ -6,6 +6,10 @@
 
 This is a feed aggregator, which collect RSS feeds and then watched for a new posts.
 
+## Demo:
+
+Vercel link: <a href="https://frontend-project-11-vert-ten.vercel.app/" target="_blank">RSS Feed Reader</a>
+
 ## Requirements:
 
 node.js 16.0+
@@ -15,7 +19,7 @@ node.js 16.0+
 Clone the repository:
 
 ```
-git clone git@github.com:elenashcherbinina/frontend-project-11.git
+git clone git@github.com:elenashcherbinina/RSS-Agregator.git
 ```
 
 Install the dependencies:
@@ -35,7 +39,3 @@ run the webpack on localhost
 ```
 make start
 ```
-
-## Demo:
-
-Vercel link: <a href="https://frontend-project-11-vert-ten.vercel.app/" target="_blank">RSS Feed Reader</a>
